@@ -1,0 +1,5 @@
+-ifdef(debug).
+-define(DEBUG(Format, Args), io:format("~p ~s.~w: " ++ Format, [ tl( tuple_to_list(erlang:now()) ), ?MODULE, ?LINE  | Args])).
+-else.
+-define(DEBUG(Format, Args), true).
+-endif.
