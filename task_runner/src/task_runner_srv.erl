@@ -62,8 +62,14 @@ init([ Dir ]) ->
 	init([ Dir, ?MAX_TIMEOUT ]);
 
 init([ Dir, Id ]) ->
+	Root = case application:get_env( dir ) of
+		{ok, R} ->
+			R;
+		undefined ->
+			"."
+	end,
 	{ok, #state{
-			dir = Dir,
+			dir = Root ++ "/" ++ Dir,
 			fd = undefined,
 			max = ?MAX_TRY,
 			timeout = ?TIMEOUT,
@@ -153,7 +159,7 @@ handle_info({Port, {exit_status, _Status}}, #state{
 			{noreply, State#state{port=undefined, fd=undefined}, Timeout}
 	end;
 
-handle_info({Port, {data, Bin}}, #state{port=Port, script= Script} = State) ->
+handle_info({Port, {data, Bin}}, #state{port=Port, script= _Script} = State) ->
 	%?DEBUG("DISPLAY: ~p: ~p\n", [ Script, Bin ]),
 	NewState = parse_output(Bin, State), 
 	{noreply, NewState};
@@ -180,7 +186,7 @@ code_change(_, State, _Vsn) ->
 % internals
 -spec run( tuple() ) -> tuple().
 run( #state{ 
-	count = Count,
+	count = _Count,
 	dir = Dir, 
 	script = Script, 
 	arguments = Arguments } = State ) ->	
