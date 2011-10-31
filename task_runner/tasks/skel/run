@@ -1,0 +1,17 @@
+#!/bin/bash
+
+ORIGIN=${0%/*}
+BIN=${0##*/}
+
+JOBID=${1?Missing JOB Identifier}
+
+INPUT=args/$JOBID
+
+exec 2>&1
+
+# Replace with your code here
+echo Job $JOBID started with pid $$
+
+cd $ORIGIN
+. launcher < $INPUT
+

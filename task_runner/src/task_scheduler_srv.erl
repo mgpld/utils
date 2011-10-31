@@ -26,11 +26,10 @@
 -export([
 	snap/1, snap/0,
 	flush/1, flush/0,
-	verify/2,
-	verify/1,
 	add/1,
 	add/2,
-	add/3
+	add/3,
+	all/0, all/1
 ]).
 
 -record(state, {
@@ -65,14 +64,6 @@ snap(Srv) ->
 snap() ->
 	snap(?MODULE).
 
--spec verify( pid() | atom(), non_neg_integer() ) -> ok.
-verify(Srv, Pid) ->
-	gen_server:call(Srv, {verify, Pid}).
-
--spec verify( pid() | atom() ) -> ok.
-verify(Pid) ->
-	verify(?MODULE, Pid).
-
 -spec flush( pid() | atom() ) -> ok.
 flush(Pid) ->
 	gen_server:cast(Pid, flush).
@@ -94,13 +85,27 @@ add(Srv, {_, _, _} = Args) ->
 add(Srv, {_, _, _} = Args, Timeout) ->
 	gen_server:call( Srv, {add, Args}, Timeout).
 
+-spec all() ->
+	{ok, list()} | {error, atom()}.
+all() ->
+	all( ?MODULE ).
+
+-spec all( pid() | atom() ) ->
+	{ok, list()} | {error, atom()}.
+all( Srv ) ->
+	gen_server:call( Srv, all ).
+
 handle_call(snap, _Node, #state{queries=Q} = State) ->
 	{reply, {ok, State}, State#state{queries=Q+1}};
 
-handle_call({add, {Id, Dir, Args}}, From, #state{queries=Q} = State) ->
-	dump_args( Id, Dir, Args),
+handle_call({add, {Id, Dir, Args}}, _From, #state{queries=Q} = State) ->
+	ok = dump_args( Id, Dir, Args),
 	Result = task_runner_srv:start_link(Dir, Id),
 	{reply, Result, State#state{queries=Q+1}};
+
+handle_call(all, _From, State) ->
+	Result = do_list_jobs(),
+	{reply, Result, State};
 
 handle_call(_, _Node, State) ->
 	{reply, undefined, State}.
@@ -128,9 +133,36 @@ terminate(_Reason, #state{queries=_Q} = _State) ->
 code_change(_, State, _Vsn) ->
 	{ok, State}.
 
+-spec dump_args( non_neg_integer(), list(), list()) ->
+	ok | {error, atom()}.	
 dump_args(_, _, []) ->
 	ok;
 dump_args(TaskId, TaskType, Args) ->
 	task_formatter:output(
 		[ TaskType, "/args/", integer_to_list(TaskId) ], 
 		Args).
+
+do_list_jobs() ->
+	Dir = case application:get_env( dir ) of
+		undefined ->
+			".";
+		{ok, Value} ->
+			Value
+	end,
+	{ok, Files } = file:list_dir( Dir ),
+	Files.
+
+% 	?DEBUG("Listing of ~p\n", [ Dir ]),
+% 	lists:foldl( fun(X, Acc) -> 
+% 			?DEBUG("+: ~p\n", [ X ]),
+% 			case filelib:is_dir([ Dir, $/, X ]) of
+% 				true ->
+% 					[ X | Acc ];
+% 				false ->
+% 					Acc
+% 			end end, [], Files).
+					
+
+	
+
+		

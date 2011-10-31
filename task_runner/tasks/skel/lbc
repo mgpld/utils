@@ -1,0 +1,46 @@
+#!/bin/bash
+
+#POST302=--post302
+
+ORIGIN=${0%/*}
+BIN=${0##*/}
+OUTPUT=$BIN.log
+
+REGION=${REGION?Missing REGION}
+DPT_CODE=${DPT_CODE?Missing DPT_CODE}
+ZIPCODE=${ZIPCODE?Missing ZIPCODE}
+NAME=${NAME?Missing NAME}
+EMAIL=${EMAIL?Missing EMAIL}
+PHONE=${PHONE?Missing PHONE}
+SUBJECT=${SUBJECT?Missing SUBJECT}
+CATEGORY=${CATEGORY?Missing CATEGORY}
+PRICE=${PRICE?Missing PRICE}
+BODYFILE=${BODY?Missing BODY}
+IMAGE=${IMAGE1:empty}
+IMAGE2=${IMAGE2:empty}
+IMAGE3=${IMAGE3:empty}
+IMAGE4=${IMAGE4:empty}
+
+if [[ ! -e $BODYFILE ]]
+then
+	echo error: $BODYFILE doesn\'t exists...
+	exit 101
+fi
+BODY=$(<$BODYFILE)
+
+# Reset cookies
+rm -f cookie.store
+
+# Build Cookies
+curl -L \
+--config curl.config \
+--silent \
+--cookie-jar cookie.store \
+--output $OUTPUT \
+--user-agent "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/534.30 (KHTML, like Gecko) Chrome/12.0.742.91 Safari/534.30" \
+--form "validate=Valider" \
+http://127.0.0.1:8001/verify
+
+grep '<title>Formulaire de ' $OUTPUT
+echo Depot: $?
+

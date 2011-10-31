@@ -1,0 +1,74 @@
+#!/bin/bash
+
+declare -a args
+declare -a names
+declare -i i j
+while read line
+do
+	case $line in
+		*:)
+			echo Wrong Format
+			;;
+
+		*:*)
+			LENGTH=${line%:*}
+			NAME=${line##*:}
+			#echo $NAME is $LENGTH bytes
+			read -d '' -n $LENGTH VALUE
+		       	args[$i]=$VALUE
+		       	#names[$NAME]=$i
+		       	names[$i]=$NAME
+			((i++))
+			;;
+		*)
+			#echo NEWLine
+			;;
+	esac
+done
+
+for ((j = 0; j <i; j++ ))
+do
+	#echo ${names[$j]} : ${args[$j]}
+	case ${names[$j]/[A-Z]/[a-z]} in
+		region)
+			REGION=${args[$j]}
+			;;
+		email)
+			EMAIL=${args[$j]}
+			;;
+		category)
+			CATEGORY=${args[$j]}
+			;;
+		dptcode)
+			DPT_CODE=${args[$j]}
+			;;
+		name)
+			NAME=${args[$j]}
+			;;
+		zipcode)
+			ZIPCODE=${args[$j]}
+			;;
+		subject)
+			SUBJECT=${args[$j]}
+			;;
+		phone)
+			PHONE=${args[$j]}
+			;;
+		price)
+			PRICE=${args[$j]}
+			;;
+		body)
+			BODY=${args[$j]}
+			;;
+		image)
+			IMAGE1=${args[$j]}
+			;;
+		*)
+			;;
+	esac
+done
+
+CMD="$REGION $DPT_CODE $ZIPCODE '$NAME' $EMAIL $PHONE $SUBJECT $CATEGORY $PRICE $BODY $IMAGE"
+echo $CMD
+
+. lbc

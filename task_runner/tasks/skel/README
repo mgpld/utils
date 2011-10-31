@@ -1,0 +1,16 @@
+
+# Directories
+args/
+contains arguments for script
+
+logs/
+contains logs 
+
+run: prepares the environment by checking the job id, and redirect input from
+ arguments file found in the args/ directory
+
+launcher: set various variable before calling the main script (the one which
+ really do something). Last line of this file should usually be 
+ 'source yourscript' i.e.: '. yourscript' (bash syntax)
+
+
