@@ -27,8 +27,6 @@
 -export([
 	snap/1, snap/0,
 	flush/1, flush/0,
-	verify/2,
-	verify/1,
 	add/2,
 	add/1
 ]).
@@ -51,13 +49,11 @@ start_link() ->
 	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 start_link( Dir ) ->
-	gen_server:start_link({local, ?MODULE}, ?MODULE, [ Dir ], []).
+	gen_server:start_link( ?MODULE, [ Dir ], []).
 
 start_link( Dir, Id ) ->
-	gen_server:start_link({local, ?MODULE}, ?MODULE, [ Dir, Id ], []).
+	gen_server:start_link( ?MODULE, [ Dir, Id ], []).
 
--spec init(list()) ->
-	{ok, tuple()}.
 init([ Dir ]) ->
 	init([ Dir, ?MAX_TIMEOUT ]);
 
@@ -95,14 +91,6 @@ snap(Srv) ->
 -spec snap() -> ok.
 snap() ->
 	snap(?MODULE).
-
--spec verify( pid() | atom(), non_neg_integer() ) -> ok.
-verify(Srv, Pid) ->
-	gen_server:call(Srv, {verify, Pid}).
-
--spec verify( pid() | atom() ) -> ok.
-verify(Pid) ->
-	verify(?MODULE, Pid).
 
 -spec flush( pid() | atom() ) -> ok.
 flush(Pid) ->
@@ -155,7 +143,7 @@ handle_info({Port, {exit_status, _Status}}, #state{
 		undefined ->
 			{noreply, State#state{port=undefined}, Timeout};
 		_ ->
-			file:close(Fd),
+			ok = file:close(Fd),
 			{noreply, State#state{port=undefined, fd=undefined}, Timeout}
 	end;
 
@@ -223,7 +211,7 @@ do_parse(Bin, #state{dir=Dir,fd=undefined,count=Iter,arguments=Arg} = State) ->
 		integer_to_list(Iter), ".log" ],
 	case file:open(FileName, [raw,write,binary]) of
 		{ok, Fd} ->
-			file:write(Fd, Bin),
+			ok = file:write(Fd, Bin),
 			State#state{fd=Fd};
 
 		{error, _Error} ->
@@ -231,15 +219,15 @@ do_parse(Bin, #state{dir=Dir,fd=undefined,count=Iter,arguments=Arg} = State) ->
 	end;
 
 do_parse(Bin, #state{fd=Fd} = State) ->
-	file:write(Fd, Bin),
+	ok = file:write(Fd, Bin),
 	State;
 
 do_parse(Bin, State) ->
 	?DEBUG("unhandled: ~p\n", [ Bin ]),
 	State.
 
-day_of_year() ->
-	{Day, _} = calendar:time_difference({
-		{element(1, erlang:date()),1,1},{0,0,0}}, 
-		calendar:local_time()),
-	Day.
+% day_of_year() ->
+% 	{Day, _} = calendar:time_difference({
+% 		{element(1, erlang:date()),1,1},{0,0,0}}, 
+% 		calendar:local_time()),
+% 	Day.

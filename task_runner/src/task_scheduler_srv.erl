@@ -33,6 +33,7 @@
 ]).
 
 -record(state, {
+		dir,
 		queries,	% usage stats
 		errors}).
 start() ->
@@ -44,7 +45,14 @@ start_link() ->
 -spec init(list()) ->
 	{ok, tuple()}.
 init([]) ->
+	Root = case application:get_env( dir ) of
+		undefined ->
+			".";
+		{ok, Value} ->
+			Value
+	end,
 	{ok, #state{
+		dir=Root,
 		queries = 0,
 		errors = 0}}.
 
@@ -99,13 +107,12 @@ handle_call(snap, _Node, #state{queries=Q} = State) ->
 	{reply, {ok, State}, State#state{queries=Q+1}};
 
 handle_call({add, {Id, Dir, Args}}, _From, #state{queries=Q} = State) ->
-	ok = dump_args( Id, Dir, Args),
-	Result = task_runner_srv:start_link(Dir, Id),
-	{reply, Result, State#state{queries=Q+1}};
+	{Result, NewState} = do_add( Id, Dir, Args, State),
+	{reply, Result, NewState#state{queries=Q+1}};
 
 handle_call(all, _From, State) ->
-	Result = do_list_jobs(),
-	{reply, Result, State};
+	{Result, NewState} = do_list_jobs(State),
+	{reply, Result, NewState};
 
 handle_call(_, _Node, State) ->
 	{reply, undefined, State}.
@@ -142,27 +149,13 @@ dump_args(TaskId, TaskType, Args) ->
 		[ TaskType, "/args/", integer_to_list(TaskId) ], 
 		Args).
 
-do_list_jobs() ->
-	Dir = case application:get_env( dir ) of
-		undefined ->
-			".";
-		{ok, Value} ->
-			Value
-	end,
-	{ok, Files } = file:list_dir( Dir ),
-	Files.
-
-% 	?DEBUG("Listing of ~p\n", [ Dir ]),
-% 	lists:foldl( fun(X, Acc) -> 
-% 			?DEBUG("+: ~p\n", [ X ]),
-% 			case filelib:is_dir([ Dir, $/, X ]) of
-% 				true ->
-% 					[ X | Acc ];
-% 				false ->
-% 					Acc
-% 			end end, [], Files).
+% internals
+do_list_jobs(#state{dir=Dir} = State) ->
+	{ok, Result } = file:list_dir( Dir ),
+	{Result, State}.
 					
-
-	
-
-		
+do_add( Id, Dir, Args, #state{dir=Root} = State ) ->
+	FullPath = Root ++ "/" ++ Dir,
+	ok = dump_args( Id, FullPath, Args),
+	Result = task_runner_srv:start_link(Dir, Id), 
+	{Result, State}.
